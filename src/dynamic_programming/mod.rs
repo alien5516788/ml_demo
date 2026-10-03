@@ -1,2 +1,1 @@
-pub mod environment;
-pub mod dp;
+pub mod dynamic_programming;
