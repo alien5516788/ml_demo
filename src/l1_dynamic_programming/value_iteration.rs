@@ -20,20 +20,48 @@ struct State {
     fruit: i32,
 }
 
+fn states() -> Vec<State> {
+    let mut states = Vec::<State>::with_capacity(9 * 9);
+
+    for h in 0..9 {
+        for f in 0..9 {
+            states.push(
+                State {
+                    head: h,
+                    fruit: f,
+                }
+            );
+        }
+    }
+
+    states
+}
+
+
 enum Action {
     Up,
     Down,
     Left,
     Right,
+    Eat,
 }
+
+fn actions() -> Vec<Action> {
+    Vec::from([
+        Action::Up,
+        Action::Down,
+        Action::Left,
+        Action::Right,
+        Action::Eat,
+    ])
+}
+
 
 const GAMMA: f32 = 0.9;
 
 
-// P(s_next | s, a)
-fn world_model(s: &State, a: &Action, s_next: &State) -> f32 {
-    // Fruit does not move
-    if s.fruit != s_next.fruit {
+fn world_model(s: &State, a: &Action, s_hat: &State) -> f32 {
+    if s.fruit != s_hat.fruit {
         return 0.0;
     }
 
@@ -45,7 +73,6 @@ fn world_model(s: &State, a: &Action, s_next: &State) -> f32 {
                 s.head - 3
             }
         },
-
         Action::Down => {
             if s.head >= 6 {
                 s.head
@@ -53,7 +80,6 @@ fn world_model(s: &State, a: &Action, s_next: &State) -> f32 {
                 s.head + 3
             }
         },
-
         Action::Left => {
             if s.head % 3 == 0 {
                 s.head
@@ -61,7 +87,6 @@ fn world_model(s: &State, a: &Action, s_next: &State) -> f32 {
                 s.head - 1
             }
         },
-
         Action::Right => {
             if s.head % 3 == 2 {
                 s.head
@@ -69,9 +94,12 @@ fn world_model(s: &State, a: &Action, s_next: &State) -> f32 {
                 s.head + 1
             }
         },
+        Action::Eat => {
+            s.head
+        }
     };
 
-    if s_next.head == next_head {
+    if s_hat.head == next_head {
         1.0
     } else {
         0.0
@@ -79,16 +107,15 @@ fn world_model(s: &State, a: &Action, s_next: &State) -> f32 {
 }
 
 
-// R(s, a, s_next)
-fn reward(s: &State, a: &Action, s_next: &State) -> f32 {
-    // Hit a wall
-    if s.head == s_next.head {
-        return -10.0;
+fn reward(s: &State, _a: &Action, s_hat: &State) -> f32 {
+    // Ate the fruit
+    if s_hat.head == s_hat.fruit {
+        return 10.0
     }
 
-    // Reached the fruit
-    if s_next.head == s_next.fruit {
-        return 10.0;
+    // Hit a wall
+    if s.head == s_hat.head {
+        return -10.0;
     }
 
     // Normal movement
@@ -96,9 +123,9 @@ fn reward(s: &State, a: &Action, s_next: &State) -> f32 {
 }
 
 
-// π(a | s)
 fn policy(s: &State, a: &Action) -> f32 {
     let head = s.head;
+    let fruit = s.fruit;
 
     match a {
         Action::Up => match head {
@@ -120,11 +147,15 @@ fn policy(s: &State, a: &Action) -> f32 {
             2 | 5 | 8 => 0.0,
             _ => 0.25,
         },
+        Action::Eat => match head == fruit {
+            true => 0.75,
+            false => 0.25,
+        }
     }
 }
 
 
-// V(s)
+// Value is learned by continuously interacting with the world_model
 fn value_iteration(pi: &impl Fn(&State, &Action) -> f32, states: &Vec<State>, actions: &Vec<Action>, v_table: &mut HashMap<State, f32>) {
     let mut new_table = HashMap::new();
 
@@ -166,25 +197,8 @@ fn value_iteration(pi: &impl Fn(&State, &Action) -> f32, states: &Vec<State>, ac
 
 
 pub fn run() {
-    let mut states = Vec::<State>::with_capacity(9 * 9);
-
-    for h in 0..9 {
-        for f in 0..9 {
-            states.push(
-                State {
-                    head: h,
-                    fruit: f,
-                }
-            );
-        }
-    }
-
-    let actions = Vec::from([
-        Action::Up,
-        Action::Down,
-        Action::Left,
-        Action::Right,
-    ]);
+    let states = states();
+    let actions = actions();
 
     let mut v_table: HashMap<State, f32> = states
         .iter()
@@ -192,8 +206,11 @@ pub fn run() {
         .map(|s| (s, 0.0))
         .collect();
 
+    println!("\nInitial table");
+    print_v_table(&v_table, 8);
+
     // Learning
-    for i in 0..100 {
+    for i in 0..20 {
         value_iteration(&policy, &states, &actions, &mut v_table);
 
         println!("\nIteration {}", i + 1);

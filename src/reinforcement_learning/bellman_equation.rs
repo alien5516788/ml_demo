@@ -12,6 +12,8 @@ use super::mdp::{states, actions, world_model, reward, GAMMA};
 
 
 // Policy (PI)
+// Not magic
+// We must decide the approach to select an action with a good balance
 fn policy(_s: State, _a: Action) -> f32 {
     /*
      * Probability of taking action a from state s
@@ -24,6 +26,7 @@ fn policy(_s: State, _a: Action) -> f32 {
 /*
  * Value of future reward of s, when following policy pi
  * Value is expected/computed
+ * Must be learned
  */
 fn _value(s: State) -> f32 {
     let mut total = 0.0;
@@ -47,6 +50,7 @@ fn _value(s: State) -> f32 {
 // Q_Value (Q)
 /*
  * Value of future reward of s given that the action a is taken
+ * Must be learned
  */
 fn _q_value(s: State, a: Action) -> f32 {
     let mut total = 0.0;
