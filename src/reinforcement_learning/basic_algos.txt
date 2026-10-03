@@ -1,0 +1,5 @@
+Dynamic Programming
+Monte Carlo
+TD
+SARSA
+Q-learning

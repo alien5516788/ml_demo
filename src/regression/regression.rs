@@ -22,7 +22,7 @@ impl<B: Backend> Model<B> {
     }
 }
 
-pub fn main() {
+pub fn run() {
     let device = WgpuDevice::default();
 
     let x = Tensor::<B, 2>::from_floats([[1.0], [2.0], [3.0], [4.0]], &device);
