@@ -31,7 +31,7 @@ const GAMMA: f32 = 0.9;
 
 
 // P(s_next | s, a)
-fn model(s: &State, a: &Action, s_next: &State) -> f32 {
+fn world_model(s: &State, a: &Action, s_next: &State) -> f32 {
     // Fruit does not move
     if s.fruit != s_next.fruit {
         return 0.0;
@@ -125,55 +125,29 @@ fn policy(s: &State, a: &Action) -> f32 {
 
 
 // V(s)
-fn value(
-    policy: &impl Fn(&State, &Action) -> f32,
-    s: &State,
-    states: &Vec<State>,
-    actions: &Vec<Action>,
-) -> f32 {
-    let mut total = 0.0;
-
-    for a in actions {
-        let action_probability = policy(s, a);
-
-        for s_next in states {
-            let transition_probability = model(s, a, s_next);
-
-            if transition_probability == 0.0 {
-                continue;
-            }
-
-            let immediate_reward = reward(s, a, s_next);
-
-            // Probability weighted contribution
-            total += action_probability
-                * transition_probability
-                * (immediate_reward + GAMMA * 0.0);
-        }
-    }
-
-    total
-}
-
-
-fn value_iteration(v_table: &mut HashMap<State, f32>, states: &Vec<State>, actions: &Vec<Action>) {
+fn value_iteration(pi: &impl Fn(&State, &Action) -> f32, states: &Vec<State>, actions: &Vec<Action>, v_table: &mut HashMap<State, f32>) {
     let mut new_table = HashMap::new();
 
     for s in states {
+        // V_(k+1)(s)
         let mut total = 0.0;
 
         for a in actions {
-            let action_probability = policy(s, a);
+            // π(a | s)
+            let action_probability = pi(s, a);
 
             for s_next in states {
-                let transition_probability = model(s, a, s_next);
+                // P(s_next | s, a)
+                let transition_probability = world_model(s, a, s_next);
 
                 if transition_probability == 0.0 {
                     continue;
                 }
 
+                // R(s, a, s_next)
                 let immediate_reward = reward(s, a, s_next);
 
+                // V_k(s_next)
                 let future_value = v_table
                     .get(s_next)
                     .unwrap();
@@ -220,8 +194,8 @@ pub fn run() {
 
     // Learning
     for i in 0..100 {
-        value_iteration(&mut v_table, &states, &actions);
-    
+        value_iteration(&policy, &states, &actions, &mut v_table);
+
         println!("\nIteration {}", i + 1);
         print_v_table(&v_table, 8);
     }

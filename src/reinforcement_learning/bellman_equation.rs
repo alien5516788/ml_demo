@@ -1,64 +1,71 @@
 // Bellman Equation
 /*
- * Bellman equation defines the mathematical relationship in MDP
- * The theoritical Bellman equation doesn't do any learning
+ * Bellman equations define mathematical relationships
+ * between rewards and value functions in an MDP.
+ *
+ * The equations themselves do not perform learning.
+ * Algorithms such as policy evaluation and value iteration
+ * repeatedly apply these relationships to compute value estimates.
  */
 use super::mdp::{State, Action};
-use super::mdp::{S, A, P, R_1 as R, gamma};
+use super::mdp::{states, actions, world_model, reward, GAMMA};
 
 
-// Policy (there are variations)
-fn deterministic_Pi(s: State, a: Action) -> f32 {
+// Policy (PI)
+fn policy(_s: State, _a: Action) -> f32 {
     /*
-     * Given the state and action, output the probability of taking that action
-     * So the action must be taken accordng to the probability
-     * For deterministic policy each action have probability of 0 or 1 (always 1 action is taken)
+     * Probability of taking action a from state s
      */
-     1.0
-}
-
-fn stochastic_Pi(s: State, a: Action) -> f32 {
-    /*
-     * For stochastic policy each action have a probability
-     * Given action or some other action may be taken based on proabability)
-     */
-    0.7
+     0.5
 }
 
 
-// Value
-fn V(pi: &impl Fn(State, Action) -> f32, s: State) -> f32 {
-    /*
-     * In mdp the reward function gives the immediate reward
-     * The value function gives the expected future reward (discounted) for that state when following policy function pi
-     *     (there can be many policy functions)
-     * For example for a certain state A, the reward function give 0 immediate reward,
-     *     but the value function say it will lead to +10
-     */
-    11.2
-}
-
-
-// Bellman equation
+// Value (V)
 /*
- * The mathematical definition for the V
- * In practical algorithms V is learned
+ * Value of future reward of s, when following policy pi
+ * Value is expected/computed
  */
-fn _V(pi: &impl Fn(State, Action) -> f32, s: State) -> f32 {
+fn _value(s: State) -> f32 {
     let mut total = 0.0;
 
-    for a in A {
-        let action_probability = pi(s, a);
+    for a in actions() {
+        let action_probability = policy(s, a);
 
-        for s_next in S {
-            let transition_probability = P(s, a, s_next);
-
-            let immediate_reward = R(s, a, s_next);
-            let future_reward = gamma * _V(pi, s_next); // recursive
+        for s_hat in states() {
+            let transition_probability = world_model(s, a, s_hat);
+            let immediate_reward = reward(s, a, s_hat);
+            let future_reward = GAMMA * _value(s_hat); // recursive
 
             // Probability weighted contribution of reward for every (a,s) pair
             total += action_probability * transition_probability * (immediate_reward + future_reward);
         }
+    }
+
+    total
+}
+
+// Q_Value (Q)
+/*
+ * Value of future reward of s given that the action a is taken
+ */
+fn _q_value(s: State, a: Action) -> f32 {
+    let mut total = 0.0;
+
+    for s_hat in states() {
+        let transition_probability = world_model(s, a, s_hat);
+        let immediate_reward = reward(s, a, s_hat);
+
+        let mut future_reward = 0.0;
+
+        for a_hat in actions() {
+            let action_probability = policy(s_hat, a_hat);
+
+            let next_q_value = _q_value(s_hat, a_hat);
+
+            future_reward += action_probability * next_q_value;
+        }
+
+        total += transition_probability * (immediate_reward + GAMMA * future_reward);
     }
 
     total

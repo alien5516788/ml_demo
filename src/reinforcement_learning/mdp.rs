@@ -1,76 +1,52 @@
 // Markov Decision Process
 /*
  * M = (S, A, P, R, gamma)
- * MDP only give the problem structure, not solution.
- * It basically says here are the all data and tools that help you to solve a problem.
+ * MDP only give the environment structure, not solution.
  */
 
-
-// 1. State
-/*
- * All possible states within an environment
- */
+// 1. States (S)
 #[derive(Clone, Copy)]
 pub struct State;
 
-pub const S: [State; 9] = [State, State, State, State, State, State, State, State, State];
+pub fn states() -> Vec<State> {
+    /*
+     * Set of all possible states
+     */
+    Vec::from([])
+}
 
-
-// 2. Action
-/*
- * All possible action can be taken within an environment
- */
+// 2. Actions (A)
 #[derive(Clone, Copy)]
 pub struct Action;
 
-pub const A: [Action; 4] = [Action, Action, Action, Action];
-
-// 3. World model
-pub fn P(s: State, a: Action, s_next: State) -> f32 {
+pub fn actions() -> Vec<Action> {
     /*
-     * Probability of transitioning to next state
-     * (s, a) = transition
+     * Set of all possible actions
+     */
+    return Vec::from([])
+}
+
+// 3. World model (P)
+pub fn world_model(_s: State, _a: Action, _s_hat: State) -> f32 {
+    /*
+     * Probability of transitioning to from state s to an another state s_hat using action a
      */
     0.0
 }
 
 
-// 4. Reward (there are variations)
-pub fn R_1(s: State, a: Action, s_next: State) -> f32 {
+// 4. Reward (R)
+pub fn reward(_s: State, _a: Action, _s_hat: State) -> f32 {
     /*
-     * The reward for getting to next state using this transition
-     * transition = (s, a)
-     */
-    0.0
-}
-
-pub fn R_2(s: State, a: Action) -> f32 {
-    /*
-     * The Reward for using this transition
-     * Doesn't care about the next state
-     */
-    0.0
-}
-
-pub fn R_3(s_next: State) -> f32 {
-    /*
-     * The reward for getting to next state
-     * Doesn't care about the transition
+     * The immediate reward for transitioning from state s to an another state s_hat using action a
+     * Can ignore s and a based on the algorithm
      */
     0.0
 }
 
 
-// 5. Discount factor
+// 5. Discount factor (gamma)
 /*
- * Reduce the reward of subsequest steps
+ * Reduce the reward of subsequest states
  */
-pub const gamma: f32 = 0.9;
-
-/*
- * Note about World Model (P) and Reward (R)
- * Model based RL try to predict the action and reward before interacting with environment
- *     using World Model and Reward function
- * Model free RL doesn't have access to P and R
- *     It directly act against environment and see the reward
- */
+pub const GAMMA: f32 = 0.9;
