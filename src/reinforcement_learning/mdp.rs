@@ -66,3 +66,11 @@ pub fn R_3(s_next: State) -> f32 {
  * Reduce the reward of subsequest steps
  */
 pub const gamma: f32 = 0.9;
+
+/*
+ * Note about World Model (P) and Reward (R)
+ * Model based RL try to predict the action and reward before interacting with environment
+ *     using World Model and Reward function
+ * Model free RL doesn't have access to P and R
+ *     It directly act against environment and see the reward
+ */

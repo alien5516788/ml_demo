@@ -1,6 +1,7 @@
 // Bellman Equation
 /*
  * Bellman equation defines the mathematical relationship in MDP
+ * The theoritical Bellman equation doesn't do any learning
  */
 use super::mdp::{State, Action};
 use super::mdp::{S, A, P, R_1 as R, gamma};
@@ -41,8 +42,8 @@ fn V(pi: &impl Fn(State, Action) -> f32, s: State) -> f32 {
 // Bellman equation
 /*
  * The mathematical definition for the V
+ * In practical algorithms V is learned
  */
-
 fn _V(pi: &impl Fn(State, Action) -> f32, s: State) -> f32 {
     let mut total = 0.0;
 
