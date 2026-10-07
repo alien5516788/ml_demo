@@ -1,7 +1,7 @@
 use super::{HEIGHT, WIDTH};
 
 
-// State
+// State (S)
 #[derive(Debug, Eq, PartialEq, Hash)]
 #[derive(Clone)]
 pub struct State {
@@ -31,7 +31,7 @@ pub fn states() -> Vec<State> {
 }
 
 
-// Action
+// Action (A)
 pub enum Action {
     Up,
     Down,
@@ -51,7 +51,7 @@ pub fn actions() -> Vec<Action> {
 }
 
 
-// World model
+// World model (P)
 pub fn world_model(s: &State, a: &Action, s_hat: &State) -> f32 {
     if s.fruit != s_hat.fruit {
         return 0.0;
@@ -108,7 +108,7 @@ pub fn world_model(s: &State, a: &Action, s_hat: &State) -> f32 {
 }
 
 
-// Reward
+// Reward (R)
 pub fn reward(s: &State, a: &Action, s_hat: &State) -> f32 {
     match a {
         Action::Eat => {
@@ -131,5 +131,5 @@ pub fn reward(s: &State, a: &Action, s_hat: &State) -> f32 {
 }
 
 
-// Gamma
+// Gamma (γ)
 pub const GAMMA: f32 = 0.9;

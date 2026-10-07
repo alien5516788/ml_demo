@@ -1,5 +1,5 @@
-pub mod iterative_policy_evaluation;
+pub mod policy_evaluation;
 
 fn main() {
-    iterative_policy_evaluation::run();
+    policy_evaluation::run();
 }
