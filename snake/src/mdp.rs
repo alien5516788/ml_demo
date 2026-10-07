@@ -2,8 +2,7 @@ use super::{HEIGHT, WIDTH};
 
 
 // State (S)
-#[derive(Debug, Eq, PartialEq, Hash)]
-#[derive(Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct State {
     pub head: (i32, i32),
     pub fruit: (i32, i32),
@@ -32,6 +31,7 @@ pub fn states() -> Vec<State> {
 
 
 // Action (A)
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum Action {
     Up,
     Down,

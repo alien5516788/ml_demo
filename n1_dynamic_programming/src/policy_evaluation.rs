@@ -16,34 +16,44 @@ fn policy(_s: &State, a: &Action) -> f32 {
 }
 
 
-// Value (V) - learned
-fn v_table(states: &Vec<State>) -> HashMap<State, f32> {
-    let table: HashMap<State, f32> = states
-        .iter()
-        .cloned()
-        .map(|s| (s, 0.0))
-        .collect();
+// Value (V) - learnt
+pub fn v_table(states: &Vec<State>) -> HashMap<State, f32> {
+    let mut table: HashMap<State, f32> = HashMap::new();
+
+    for s in states {
+        table.insert(s.clone(), 0.0);
+    }
 
     table
 }
 
+pub fn value(s: &State, v_table: &HashMap<State, f32>) -> f32 {
+    v_table[s]
+}
+
 
 /*
- * Value is learned by continuously interacting with the world_model
+ * Value is learnet by continuously interacting with the world_model
  *
  *     V(s) <- Σ_a Σ_s_hat π(a | s) * P(s_hat | s,a) * [R(s,a,s_hat) + γV(s_hat)]
  */
-fn policy_evaluation(pi: &impl Fn(&State, &Action) -> f32, states: &Vec<State>, actions: &Vec<Action>, v_table: &mut HashMap<State, f32>) {
+pub fn policy_evaluation(
+    states: &Vec<State>,
+    actions: &Vec<Action>,
+    v_table: &mut HashMap<State, f32>
+) {
     let mut new_table = HashMap::new();
 
     for s in states {
         // V(s)
         let mut total = 0.0;
 
+        // Σ_a
         for a in actions {
             // π(a | s)
-            let action_probability = pi(s, a);
+            let action_probability = policy(s, a);
 
+            // Σ_s_hat
             for s_hat in states {
                 // P(s_hat | s, a)
                 let transition_probability = world_model(s, a, s_hat);
@@ -65,7 +75,7 @@ fn policy_evaluation(pi: &impl Fn(&State, &Action) -> f32, states: &Vec<State>, 
                 // V(s) <- π(a | s) * P(s' | s,a) * [R(s,a,s') + γV(s')]
                 total += action_probability
                     * transition_probability
-                    * (immediate_reward + GAMMA * future_value);
+                    * (immediate_reward + (GAMMA * future_value));
             }
         }
 
@@ -78,22 +88,24 @@ fn policy_evaluation(pi: &impl Fn(&State, &Action) -> f32, states: &Vec<State>, 
 }
 
 
-
 pub fn run() {
     let states = states();
     let actions = actions();
-    let mut v_table: HashMap<State, f32> = v_table(&states);
+    let mut v_table = v_table(&states);
 
     println!("\nInitial table");
     print_v_table(&v_table, (0, 0));
 
-    // Learning
+    // Train
     for i in 0..50 {
-        policy_evaluation(&policy, &states, &actions, &mut v_table);
+        policy_evaluation(&states, &actions, &mut v_table);
 
         println!("\nIteration {}", i + 1);
         print_v_table(&v_table, (0, 0));
     }
+
+    // Test
+    todo!()
 }
 
 
