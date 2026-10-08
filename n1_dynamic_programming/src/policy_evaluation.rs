@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use snake::{HEIGHT, WIDTH};
-use snake::mdp::{State, states, Action, actions, world_model, reward, GAMMA};
+use snake::mdp::{State, Action, world_model, reward, GAMMA};
 
 
 // Policy (π) - defined
@@ -35,7 +35,7 @@ pub fn value(s: &State, v_table: &HashMap<State, f32>) -> f32 {
 /*
  * Value is learnet by continuously interacting with the world_model
  *
- *     V(s) <- Σ_a Σ_s_hat π(a | s) * P(s_hat | s,a) * [R(s,a,s_hat) + γV(s_hat)]
+ *     V(s) <- Σ_a π(a | s) Σ_s' P(s' | s, a) * [R(s, a, s') + γV(s')]
  */
 pub fn policy_evaluation(
     states: &Vec<State>,
@@ -46,51 +46,43 @@ pub fn policy_evaluation(
 
     for s in states {
         // V(s)
-        let mut total = 0.0;
+        let mut v = 0.0;
 
         // Σ_a
         for a in actions {
             // π(a | s)
             let action_probability = policy(s, a);
 
-            // Σ_s_hat
-            for s_hat in states {
-                // P(s_hat | s, a)
-                let transition_probability = world_model(s, a, s_hat);
+            // Σ_s'
+            for s_next in states {
+                // P(s' | s, a)
+                let transition_probability = world_model(s, a, s_next);
 
-                // Skip the states that have 0 contribution (optional)
-                // Not a part of original bellman equation
-                if transition_probability == 0.0 {
-                    continue;
-                }
+                // R(s, a, s')
+                let immediate_reward = reward(s, a, s_next);
 
-                // R(s, a, s_hat)
-                let immediate_reward = reward(s, a, s_hat);
-
-                // V(s_hat)
+                // V(s')
                 let future_value = v_table
-                    .get(s_hat)
+                    .get(s_next)
                     .unwrap();
 
-                // V(s) <- π(a | s) * P(s' | s,a) * [R(s,a,s') + γV(s')]
-                total += action_probability
+                // V(s) <- π(a | s) * P(s' | s, a) * [R(s, a, s') + γV(s')]
+                v += action_probability
                     * transition_probability
                     * (immediate_reward + (GAMMA * future_value));
             }
         }
 
-        // Add state entry
-        new_table.insert(s.clone(), total);
+        new_table.insert(s.clone(), v);
     }
 
-    // Update v_table
     *v_table = new_table;
 }
 
 
 pub fn run() {
-    let states = states();
-    let actions = actions();
+    let states = State::all();
+    let actions = Action::all();
     let mut v_table = v_table(&states);
 
     println!("\nInitial table");

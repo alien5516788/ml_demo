@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use snake::{HEIGHT, WIDTH};
-use snake::mdp::{State, states, Action, actions, world_model, reward, GAMMA};
+use snake::mdp::{State, Action, world_model, reward, GAMMA};
 
 
 // Policy (π) - learnt
@@ -18,8 +18,8 @@ fn pi_table(states: &Vec<State>, actions: &Vec<Action>) -> HashMap<(State, Actio
 }
 
 pub fn policy(s: &State, a: &Action, pi_table: &mut HashMap<(State, Action), f32>) -> f32 {
-    let _sa = (s.clone(), a.clone());
-    pi_table[&_sa]
+    let sa = (s.clone(), a.clone());
+    pi_table[&sa]
 }
 
 // Policy iteration
@@ -28,12 +28,11 @@ pub fn policy(s: &State, a: &Action, pi_table: &mut HashMap<(State, Action), f32
  *   - Policy improvement
  *
  * Policy is improved by calculating the Q(s,a) for every possible action a and
- *   updating the policy table with the action with best Q value
+ *   updating the policy table with the action a* (action a with best Q value)
  *
- *     Q(s,a) <- Σ_s_hat P(s_hat | s,a) * [R(s,a,s_hat) + γV(s_hat)]
- *
- *     a* <- argmax_a Q(s,a)
- *     π(a|s) <- 1 if a == a*, 0 otherwise
+ *     Q(s, a) = Σ_s' P(s' | s, a) * [R(s, a, s') + γV(s')]
+ *     a* = argmax_a Q(s, a)
+ *     π(a | s) <- 1 if a == a*, 0 otherwise
  */
 fn policy_iteration(
     states: &Vec<State>,
@@ -42,58 +41,53 @@ fn policy_iteration(
     v_table: &mut HashMap<State, f32>
 ) {
     // Policy evaluation
-    policy_evaluation(&states, &actions, pi_table, v_table);
+    for _ in 0..5 {
+        policy_evaluation(&states, &actions, pi_table, v_table);
+    }
 
     // Policy improvement
 
     let mut new_table = HashMap::new();
 
     for s in states {
-        let mut best_action = actions[0].clone(); // a* (best action)
-        let mut best_value = f32::NEG_INFINITY;   // max_a Q(s, a)
+        let mut best_action = actions[0].clone(); // a*
+        let mut best_action_value = f32::NEG_INFINITY;   // max_a Q(s, a)
 
         for a in actions {
-            // Q(s,a)
+            // Q(s, a)
             let mut action_value = 0.0;
 
-            // Σ_s_hat
-            for s_hat in states {
+            // Σ_s'
+            for s_next in states {
 
-                // P(s_hat | s,a)
-                let transition_probability = world_model(s, a, s_hat);
+                // P(s' | s,a)
+                let transition_probability = world_model(s, a, s_next);
 
-                // Optional (optimization)
-                if transition_probability == 0.0 {
-                    continue;
-                }
+                // R(s, a, s')
+                let immediate_reward = reward(s, a, s_next);
 
-                // R(s,a,s_hat)
-                let immediate_reward = reward(s, a, s_hat);
+                // V(s')
+                let future_value = value(s_next, v_table);
 
-                // V(s_hat)
-                let future_value = value(s_hat, v_table);
-
-                // Q(s,a) = P(s_hat | s,a) * [R(s,a,s_hat) + γV(s_hat)]
+                // Q(s, a) = P(s' | s, a) * [R(s, a, s') + γV(s')]
                 action_value += transition_probability
                     * (immediate_reward + (GAMMA * future_value));
             }
 
-            // Keep the action with the highest Q(s,a)
-            if action_value > best_value {
-                best_action = a.clone();   // a* <- arg_max_a Q(s,a)
-                best_value = action_value; // max_a Q(s, a)
+            // a* <- arg_max_a Q(s, a)
+            if action_value > best_action_value {
+                best_action = a.clone();   // a*
+                best_action_value = action_value; // max_a Q(s, a)
             }
         }
 
+        // π(a | s) <- 1 if a == a*, 0 otherwise
         for a in actions {
-            let probability = if *a == best_action {
-                1.0
+            if *a == best_action {
+                new_table.insert((s.clone(), a.clone()), 1.0);
             } else {
-                0.0
+                new_table.insert((s.clone(), a.clone()), 0.0);
             };
-
-            // π(a|s) <- 1 if a == a*, 0 otherwise
-            new_table.insert((s.clone(), a.clone()), probability);
         }
     }
 
@@ -121,7 +115,7 @@ pub fn value(s: &State, v_table: &HashMap<State, f32>) -> f32 {
 /*
  * Value is learnet by continuously interacting with the world_model
  *
- *     V(s) <- Σ_a Σ_s_hat π(a | s) * P(s_hat | s,a) * [R(s,a,s_hat) + γV(s_hat)]
+ *     V(s) <- Σ_a π(a | s) Σ_s' P(s' | s, a) * [R(s, a, s') + γV(s')]
  */
 pub fn policy_evaluation(
     states: &Vec<State>,
@@ -133,51 +127,43 @@ pub fn policy_evaluation(
 
     for s in states {
         // V(s)
-        let mut total = 0.0;
+        let mut v = 0.0;
 
         // Σ_a
         for a in actions {
             // π(a | s)
             let action_probability = policy(s, a, pi_table);
 
-            // Σ_s_hat
-            for s_hat in states {
-                // P(s_hat | s, a)
-                let transition_probability = world_model(s, a, s_hat);
+            // Σ_s'
+            for s_next in states {
+                // P(s' | s, a)
+                let transition_probability = world_model(s, a, s_next);
 
-                // Skip the states that have 0 contribution (optional)
-                // Not a part of original bellman equation
-                if transition_probability == 0.0 {
-                    continue;
-                }
+                // R(s, a, s')
+                let immediate_reward = reward(s, a, s_next);
 
-                // R(s, a, s_hat)
-                let immediate_reward = reward(s, a, s_hat);
-
-                // V(s_hat)
+                // V(s')
                 let future_value = v_table
-                    .get(s_hat)
+                    .get(s_next)
                     .unwrap();
 
-                // V(s) <- π(a | s) * P(s' | s,a) * [R(s,a,s') + γV(s')]
-                total += action_probability
+                // V(s) <- π(a | s) * P(s' | s, a) * [R(s, a, s') + γV(s')]
+                v += action_probability
                     * transition_probability
                     * (immediate_reward + (GAMMA * future_value));
             }
         }
 
-        // Add state entry
-        new_table.insert(s.clone(), total);
+        new_table.insert(s.clone(), v);
     }
 
-    // Update v_table
     *v_table = new_table;
 }
 
 
 pub fn run() {
-    let states = states();
-    let actions = actions();
+    let states = State::all();
+    let actions = Action::all();
     let mut pi_table = pi_table(&states, &actions);
     let mut v_table = v_table(&states);
 
@@ -191,6 +177,9 @@ pub fn run() {
         println!("\nIteration {}", i + 1);
         print_v_table(&v_table, (0, 3));
     }
+
+    // Test
+    todo!()
 }
 
 

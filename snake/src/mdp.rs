@@ -8,25 +8,31 @@ pub struct State {
     pub fruit: (i32, i32),
 }
 
-pub fn states() -> Vec<State> {
-    let mut states = Vec::<State>::with_capacity(HEIGHT as usize * WIDTH as usize);
+impl State {
+    pub fn all() -> Vec<State> {
+        let mut states = Vec::<State>::with_capacity(HEIGHT as usize * WIDTH as usize);
 
-    for h_y in 0..HEIGHT {
-        for h_x in 0..WIDTH {
-            for f_y in 0..HEIGHT {
-                for f_x in 0..WIDTH {
-                    states.push(
-                        State {
-                            head: (h_x, h_y),
-                            fruit: (f_x, f_y),
-                        }
-                    );
+        for h_y in 0..HEIGHT {
+            for h_x in 0..WIDTH {
+                for f_y in 0..HEIGHT {
+                    for f_x in 0..WIDTH {
+                        states.push(
+                            State {
+                                head: (h_x, h_y),
+                                fruit: (f_x, f_y),
+                            }
+                        );
+                    }
                 }
             }
         }
+
+        states
     }
 
-    states
+    pub fn is_terminal(&self) -> bool {
+        self.head == self.fruit
+    }
 }
 
 
@@ -40,25 +46,27 @@ pub enum Action {
     Eat,
 }
 
-pub fn actions() -> Vec<Action> {
-    Vec::from([
-        Action::Up,
-        Action::Down,
-        Action::Left,
-        Action::Right,
-        Action::Eat,
-    ])
+impl Action {
+    pub fn all() -> Vec<Action> {
+        Vec::from([
+            Action::Up,
+            Action::Down,
+            Action::Left,
+            Action::Right,
+            Action::Eat,
+        ])
+    }
 }
 
 
 // World model (P)
-pub fn world_model(s: &State, a: &Action, s_hat: &State) -> f32 {
-    if s.fruit != s_hat.fruit {
+pub fn world_model(s: &State, a: &Action, s_next: &State) -> f32 {
+    if s.fruit != s_next.fruit {
         return 0.0;
     }
 
-    let x_diff = s.head.0 - s_hat.head.0;
-    let y_diff = s.head.1 - s_hat.head.1 ;
+    let x_diff = s.head.0 - s_next.head.0;
+    let y_diff = s.head.1 - s_next.head.1 ;
 
     match a {
         Action::Up => {
@@ -109,18 +117,18 @@ pub fn world_model(s: &State, a: &Action, s_hat: &State) -> f32 {
 
 
 // Reward (R)
-pub fn reward(s: &State, a: &Action, s_hat: &State) -> f32 {
+pub fn reward(s: &State, a: &Action, s_next: &State) -> f32 {
     match a {
         Action::Eat => {
-            if (s_hat.head == s_hat.fruit) && (s.fruit == s_hat.fruit) {
-                10.0
+            if (s_next.head == s_next.fruit) && (s.fruit == s_next.fruit) {
+                1.0
             } else {
                 -2.0
             }
         },
         _ => {
             // Hit a wall
-            if s == s_hat {
+            if s == s_next {
                 -2.0
             // Normal movement
             } else {
